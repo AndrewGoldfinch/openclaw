@@ -189,6 +189,19 @@ function applyNvidiaNimConfig(params: ApplyAuthChoiceParams): ApplyAuthChoiceRes
   let agentModelOverride: string | undefined;
 
   const existingModel = nextConfig.agents?.defaults?.model;
+  const existingPrimary =
+    typeof existingModel === "string"
+      ? existingModel
+      : typeof existingModel === "object" && existingModel !== null && "primary" in existingModel
+        ? (existingModel as { primary?: string }).primary
+        : undefined;
+  const existingFallbacks =
+    typeof existingModel === "object" && existingModel !== null && "fallbacks" in existingModel
+      ? (existingModel as { fallbacks?: string[] }).fallbacks
+      : undefined;
+  const fallbacks = existingPrimary
+    ? [existingPrimary, ...(existingFallbacks ?? [])]
+    : existingFallbacks;
   nextConfig = {
     ...nextConfig,
     agents: {
@@ -196,9 +209,7 @@ function applyNvidiaNimConfig(params: ApplyAuthChoiceParams): ApplyAuthChoiceRes
       defaults: {
         ...nextConfig.agents?.defaults,
         model: {
-          ...(existingModel && "fallbacks" in (existingModel as Record<string, unknown>)
-            ? { fallbacks: (existingModel as { fallbacks?: string[] }).fallbacks }
-            : undefined),
+          ...(fallbacks ? { fallbacks } : undefined),
           primary: NVIDIA_NIM_DEFAULT_MODEL_REF,
         },
       },
